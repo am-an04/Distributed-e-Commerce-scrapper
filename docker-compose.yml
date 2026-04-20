@@ -1,0 +1,23 @@
+services:
+  mongodb:
+    image: mongo:latest
+    ports: ["27017:27017"]
+
+  redis:
+    image: redis:alpine
+    ports: ["6379:6379"]
+
+  master-api:
+    build:
+      context: .
+      dockerfile: docker/master.Dockerfile
+    ports: ["3000:3000"]
+    depends_on: [mongodb, redis]
+
+  worker-node:
+    build:
+      context: .
+      dockerfile: docker/worker.Dockerfile
+    depends_on: [mongodb, redis]
+    deploy:
+      replicas: 3 # Running 3 workers for distributed processing
