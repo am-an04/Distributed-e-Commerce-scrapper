@@ -2,18 +2,24 @@
   "name": "distributed-scraper",
   "version": "1.0.0",
   "scripts": {
+    "start": "node scripts/dev-local.js",
     "dev": "docker compose up --scale worker-node=3",
     "build": "docker compose up --build --scale worker-node=3",
     "down": "docker compose down"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.0.0",
     "playwright": "^1.40.0",
     "playwright-extra": "^4.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "redis": "^4.6.10"
+  },
+  "devDependencies": {
+    "redis-memory-server": "^0.17.1"
   }
 }

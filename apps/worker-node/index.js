@@ -1,9 +1,8 @@
-
 const connectDB = require('../../libs/database/connection');
 const { connectRedis } = require('../../libs/redis/client');
 const runScraper = require('./engine/scraper');
 const Product = require('../../libs/database/Product');
-const { parsePrice } = require('../../libs/utils/parser');
+const { parsePrice, parseRating, cleanImageUrl, calculateDiscount } = require('../../libs/utils/parser');
 const storeConfigs = require('./scrapers/siteConfigs');
 
 async function start() {
@@ -27,7 +26,7 @@ async function start() {
 
             const config = storeConfigs[store];
 
-            // ✅ safety check
+            // Safety check
             if (!config) {
                 console.log(`❌ No config found for store: ${store}`);
                 continue;
@@ -35,32 +34,41 @@ async function start() {
 
             const data = await runScraper(url, store, config);
 
-            console.log(" Scraped Data:", data);
+            console.log(" Scraped Data count:", data ? data.length : 0);
 
+            if (Array.isArray(data)) {
+                for (const item of data) {
+                    if (item && item.title !== "N/A" && item.title) {
+                        const numericPrice = parsePrice(item.price);
+                        const numericOrigPrice = parsePrice(item.originalPrice);
+                        const numericRating = parseRating(item.rating);
+                        const imageUrl = cleanImageUrl(item.image, url);
+                        const discountPct = calculateDiscount(numericPrice, numericOrigPrice);
 
-    if (Array.isArray(data)) {
-    for (const item of data) {
-        if (item && item.title !== "N/A") {
-            const numericPrice = parsePrice(item.price);
+                        if (numericPrice > 0) {
+                            await Product.findOneAndUpdate(
+                                { url: item.url },
+                                {
+                                    title: item.title,
+                                    price: numericPrice,
+                                    originalPrice: numericOrigPrice > numericPrice ? numericOrigPrice : null,
+                                    discount: discountPct,
+                                    rating: numericRating,
+                                    image: imageUrl,
+                                    store: config.name || store,
+                                    url: item.url,
+                                    lastScraped: new Date()
+                                },
+                                { upsert: true }
+                            );
 
-            await Product.findOneAndUpdate(
-                { url: item.url },
-                {
-                    title: item.title,
-                    price: numericPrice,
-                    store: store,
-                    url: item.url,
-                    lastScraped: new Date()
-                },
-                { upsert: true }
-            );
-
-            console.log(`✅ [${store}] Saved: ${item.title} - ₹${numericPrice}`);
-        }
-    }
-} else {
-    console.log(`⚠️ [${store}] No valid data extracted`);
-}
+                            console.log(`✅ [${store}] Saved: ${item.title} - ₹${numericPrice}`);
+                        }
+                    }
+                }
+            } else {
+                console.log(`⚠️ [${store}] No valid data extracted`);
+            }
 
         } catch (err) {
             console.error("❌ Worker Loop Error:", err.message);

@@ -1,81 +1,70 @@
 const { getRedisClient } = require('../../../libs/redis/client');
 const Product = require('../../../libs/database/Product');
+const storeConfigs = require('../../worker-node/scrapers/siteConfigs');
+
+const ELECTRONICS_KEYWORDS = ['phone', 'mobile', 'laptop', 'tv', 'headphone', 'earbuds', 'watch', 'camera', 'refrigerator', 'macbook', 'ipad', 'iphone', 'samsung', 'sony', 'dell', 'hp', 'audio', 'charger', 'speaker', 'tab', 'monitor', 'keyboard', 'mouse', 'console', 'ps5'];
+const FASHION_KEYWORDS = ['shoe', 'sneaker', 'tshirt', 't-shirt', 'shirt', 'jeans', 'jacket', 'hoodie', 'kurta', 'dress', 'saree', 'top', 'trouser', 'pant', 'sandal', 'footwear', 'clothing', 'bag', 'wallet'];
+const SPORTS_KEYWORDS = ['shoe', 'sneaker', 'running', 'football', 'gym', 'fitness', 'sports', 'racket', 'bat', 'cycle', 'jersey', 'tracks', 'sports-bag'];
+const BEAUTY_KEYWORDS = ['lipstick', 'perfume', 'shampoo', 'cream', 'lotion', 'makeup', 'serum', 'skincare', 'hair', 'beauty', 'fragrance', 'cologne'];
 
 /**
- * Helper: check if product is fashion-related
- */
-const myntraMap = {
-    shoes: "shoes",
-    sneaker: "shoes",
-    tshirt: "tshirts",
-    "t-shirt": "tshirts",
-    shirt: "shirts",
-    jeans: "jeans",
-    jacket: "jackets",
-    hoodie: "hoodies",
-    kurta: "kurtas",
-    dress: "dresses"
-};
-
-const getMyntraPath = (productName) => {
-    const key = productName.toLowerCase();
-
-    for (let k in myntraMap) {
-        if (key.includes(k)) {
-            return myntraMap[k];
-        }
-    }
-    return null; // not supported
-};
-
-/**
- * Distributes tasks to workers
+ * Distributes tasks to workers dynamically based on product query and category hints
  */
 const initiateSearch = async (productName) => {
     const redisClient = await getRedisClient();
 
-    // Clear previous results
+    // Clear previous search results from DB
     await Product.deleteMany({});
 
     const tasks = [];
+    const queryLower = productName.toLowerCase();
 
-    // ✅ Always include Amazon & Flipkart
-    tasks.push(
-        { name: 'amazon', url: `https://www.amazon.in/s?k=${encodeURIComponent(productName)}` },
-        { name: 'flipkart', url: `https://www.flipkart.com/search?q=${encodeURIComponent(productName)}` }
-    );
+    const isElectronics = ELECTRONICS_KEYWORDS.some(k => queryLower.includes(k));
+    const isFashion = FASHION_KEYWORDS.some(k => queryLower.includes(k));
+    const isSports = SPORTS_KEYWORDS.some(k => queryLower.includes(k));
+    const isBeauty = BEAUTY_KEYWORDS.some(k => queryLower.includes(k));
 
-    // ✅ Myntra only if relevant
-    const myntraPath = getMyntraPath(productName);
+    // Determine relevant stores
+    for (const [storeKey, cfg] of Object.entries(storeConfigs)) {
+        let shouldInclude = false;
 
-    if (myntraPath) {
-        tasks.push({
-            name: 'myntra',
-            url: `https://www.myntra.com/${myntraPath}`
-        });
-    } else {
-        console.log("⚠️ Myntra skipped (not a fashion product)");
+        if (cfg.category === 'general') {
+            shouldInclude = true; // Always include general marketplaces (Amazon, Flipkart, Tata CLiQ, Snapdeal, Meesho, Shopsy)
+        } else if (cfg.category === 'electronics' && (isElectronics || (!isFashion && !isSports && !isBeauty))) {
+            shouldInclude = true;
+        } else if (cfg.category === 'fashion' && (isFashion || (!isElectronics && !isBeauty))) {
+            shouldInclude = true;
+        } else if (cfg.category === 'sports' && (isSports || isFashion || (!isElectronics && !isBeauty))) {
+            shouldInclude = true;
+        } else if (cfg.category === 'beauty' && (isBeauty || (!isElectronics && !isSports))) {
+            shouldInclude = true;
+        }
+
+        if (shouldInclude && typeof cfg.searchUrl === 'function') {
+            tasks.push({
+                name: storeKey,
+                storeDisplayName: cfg.name,
+                url: cfg.searchUrl(productName)
+            });
+        }
     }
 
-    // Optional: Nike (same logic as Myntra)
-    if (productName.toLowerCase().includes("shoe")) {
-        tasks.push({
-            name: 'nike',
-            url: `https://www.nike.com/in/w?q=${encodeURIComponent(productName)}`
-        });
-    }
+    console.log(`📤 Pushing ${tasks.length} scraping tasks to Redis for '${productName}'...`);
 
-    // Push tasks to Redis
+    // Push tasks to Redis scrape_queue
     for (const task of tasks) {
-        console.log("📤 Sending task:", task);
+        console.log(`  -> Task queued: [${task.name}] ${task.url}`);
         await redisClient.lPush('scrape_queue', JSON.stringify(task));
     }
 
-    return tasks.length;
+    return {
+        count: tasks.length,
+        stores: tasks.map(t => t.storeDisplayName || t.name)
+    };
 };
 
 /**
- * Fetch results from DB
+ * Fetch results from DB sorted by price
  */
 const getLatestResults = async () => {
     return await Product.find().sort({ price: 1 });
