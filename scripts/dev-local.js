@@ -1,6 +1,12 @@
-const { RedisMemoryServer } = require('redis-memory-server');
 const { spawn } = require('child_process');
 const net = require('net');
+
+let RedisMemoryServer;
+try {
+    RedisMemoryServer = require('redis-memory-server').RedisMemoryServer;
+} catch (e) {
+    // redis-memory-server is optional for local development
+}
 
 async function checkPort(port) {
     return new Promise((resolve) => {
@@ -19,16 +25,22 @@ async function start() {
 
     const isRedisOpen = await checkPort(6379);
     if (!isRedisOpen) {
-        console.log("📡 Starting local Redis Memory Server on port 6379...");
-        try {
-            const redisServer = new RedisMemoryServer({
-                instance: { port: 6379 }
-            });
-            await redisServer.getHost();
-            await redisServer.getPort();
-            console.log("✅ Redis Server active at 127.0.0.1:6379");
-        } catch (e) {
-            console.log("⚠️ Could not start embedded Redis. Trying default host...", e.message);
+        if (RedisMemoryServer) {
+            console.log("📡 Starting local Redis Memory Server on port 6379...");
+            try {
+                const redisServer = new RedisMemoryServer({
+                    instance: { port: 6379 }
+                });
+                await redisServer.getHost();
+                await redisServer.getPort();
+                console.log("✅ Redis Server active at 127.0.0.1:6379");
+            } catch (e) {
+                console.log("⚠️ Could not start embedded Redis. Trying default host...", e.message);
+            }
+        } else {
+            console.log("⚠️ No Redis service detected on port 6379 and optional 'redis-memory-server' is not installed.");
+            console.log("ℹ️ For local in-memory Redis, install it via: npm install --save-dev redis-memory-server");
+            console.log("ℹ️ Or ensure a Redis service is running at 127.0.0.1:6379");
         }
     } else {
         console.log("✅ Existing Redis service detected on port 6379.");

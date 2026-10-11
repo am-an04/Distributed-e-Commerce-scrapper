@@ -1,0 +1,9 @@
+node_modules
+.git
+.gitignore
+.env
+npm-debug.log*
+screenshots/
+debug_*.png
+mongodb_data/
+redis_data/
