@@ -102,6 +102,21 @@ async function start() {
     console.log("⚡ Launching Master API (Port 3000)...");
     const master = spawn('node', ['apps/master-api/index.js'], { env, stdio: 'inherit', shell: true });
 
+    console.log("🔍 Checking Playwright browser binaries...");
+    try {
+        const { chromium } = require('playwright');
+        const fs = require('fs');
+        const execPath = chromium.executablePath();
+        if (!fs.existsSync(execPath)) {
+            console.log("📥 Downloading Playwright Chromium browser for workers...");
+            const { execSync } = require('child_process');
+            execSync('npx playwright install chromium', { stdio: 'inherit' });
+        }
+        console.log("✅ Playwright Chromium ready.");
+    } catch (e) {
+        console.log("⚠️ Playwright check note:", e.message);
+    }
+
     console.log("🤖 Spawning 3 Distributed Worker Nodes...");
     const workers = [];
     for (let i = 1; i <= 3; i++) {

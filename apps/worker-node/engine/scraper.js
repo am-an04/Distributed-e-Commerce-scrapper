@@ -202,7 +202,11 @@ async function runScraper(url, storeName, config) {
         console.log(`❌ [${storeName}] Error: ${err.message}`);
         return null;
     } finally {
-        await browser.close();
+        try {
+            await browser.close();
+        } catch (_) {
+            // Ignore error on close if browser already crashed or closed
+        }
     }
 }
 

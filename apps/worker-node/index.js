@@ -5,6 +5,13 @@ const Product = require('../../libs/database/Product');
 const { parsePrice, parseRating, cleanImageUrl, calculateDiscount } = require('../../libs/utils/parser');
 const storeConfigs = require('./scrapers/siteConfigs');
 
+process.on('unhandledRejection', (reason) => {
+    console.error('⚠️ Worker Unhandled Rejection:', reason && reason.message ? reason.message : reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('⚠️ Worker Uncaught Exception:', err.message);
+});
+
 async function start() {
     await connectDB();
     const redis = await connectRedis();
