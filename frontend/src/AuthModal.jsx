@@ -50,7 +50,7 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       }
     } catch (err) {
       console.error("Auth error:", err);
-      const msg = err.response?.data?.error || 'Authentication failed. Please try again.';
+      const msg = err.response?.data?.error || (err.message === 'Network Error' ? 'Cannot connect to server. Please check if the backend API is running on port 3000.' : 'Authentication failed. Please try again.');
       setError(msg);
     } finally {
       setLoading(false);

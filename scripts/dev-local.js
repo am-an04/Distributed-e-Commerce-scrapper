@@ -46,6 +46,53 @@ async function start() {
         console.log("✅ Existing Redis service detected on port 6379.");
     }
 
+    let mongoProcess = null;
+    const isMongoOpen = await checkPort(27017);
+    if (!isMongoOpen) {
+        console.log("📡 Checking for local MongoDB service on port 27017...");
+        const fs = require('fs');
+        const path = require('path');
+        const candidatePaths = [
+            'C:\\Program Files\\MongoDB\\Server\\8.0\\bin\\mongod.exe',
+            'C:\\Program Files\\MongoDB\\Server\\7.0\\bin\\mongod.exe',
+            'C:\\Program Files\\MongoDB\\Server\\6.0\\bin\\mongod.exe',
+            'mongod'
+        ];
+        const mongodBin = candidatePaths.find(p => p !== 'mongod' && fs.existsSync(p)) || 'mongod';
+        const dataDir = path.join(__dirname, '..', 'mongodb_data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+
+        try {
+            console.log(`📦 Launching local MongoDB server using ${dataDir}...`);
+            mongoProcess = spawn(mongodBin, ['--dbpath', dataDir, '--port', '27017'], {
+                stdio: 'ignore',
+                shell: true
+            });
+            mongoProcess.on('error', (err) => {
+                console.log("⚠️ Could not spawn mongod:", err.message);
+            });
+
+            // Wait up to 5 seconds for Mongo to accept connections
+            for (let i = 0; i < 10; i++) {
+                await new Promise(r => setTimeout(r, 500));
+                if (await checkPort(27017)) {
+                    console.log("✅ Local MongoDB active at 127.0.0.1:27017");
+                    break;
+                }
+            }
+        } catch (e) {
+            console.log("⚠️ Could not start local MongoDB:", e.message);
+        }
+
+        if (!await checkPort(27017)) {
+            console.log("⚠️ MongoDB is not accessible at 127.0.0.1:27017. Please start MongoDB for authentication & database features.");
+        }
+    } else {
+        console.log("✅ Existing MongoDB service detected on port 27017.");
+    }
+
     const env = { 
         ...process.env, 
         MONGO_URI: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/scraper_db', 
@@ -70,6 +117,7 @@ async function start() {
         master.kill();
         workers.forEach(w => w.kill());
         frontend.kill();
+        if (mongoProcess) mongoProcess.kill();
         process.exit();
     };
 
