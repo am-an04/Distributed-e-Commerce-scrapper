@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Search, Star, Hotel as HotelIcon, Calendar, Users, Loader2, Navigation, Home, X, Wifi, ShieldCheck, BedDouble } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from './config.js';
 
 const POPULAR_HOTEL_CITIES = ['Goa', 'Delhi', 'Mumbai', 'Bangalore', 'Udaipur', 'Jaipur', 'Manali'];
 const AMENITY_TAGS = ['ALL', 'Beachfront', 'Swimming Pool', 'Spa', 'Free WiFi', 'Luxury Dining', 'Rooftop Bar'];
@@ -84,7 +85,7 @@ function HotelView({ user, token, onOpenAuth, showToast }) {
       if (selectedAmenity !== 'ALL') params.append('amenity', selectedAmenity);
       if (availableOnly) params.append('availableOnly', 'true');
 
-      const res = await axios.get(`http://localhost:3000/api/hotels?${params.toString()}`);
+      const res = await axios.get(`${API_BASE_URL}/api/hotels?${params.toString()}`);
       setHotels(res.data || []);
     } catch (err) {
       console.error("Error fetching hotels:", err);
@@ -110,7 +111,7 @@ function HotelView({ user, token, onOpenAuth, showToast }) {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const res = await axios.post(
-        'http://localhost:3000/api/hotels/book',
+        `${API_BASE_URL}/api/hotels/book`,
         {
           hotelId: selectedHotel._id,
           checkIn,

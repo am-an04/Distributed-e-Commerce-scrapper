@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User as UserIcon, Eye, EyeOff, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from './config.js';
 
 function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -35,7 +36,7 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     setLoading(true);
 
     try {
-      const endpoint = isLogin ? 'http://localhost:3000/api/auth/login' : 'http://localhost:3000/api/auth/register';
+      const endpoint = isLogin ? `${API_BASE_URL}/api/auth/login` : `${API_BASE_URL}/api/auth/register`;
       const payload = isLogin ? { email, password } : { name, email, password };
 
       const res = await axios.post(endpoint, payload);
@@ -50,7 +51,7 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       }
     } catch (err) {
       console.error("Auth error:", err);
-      const msg = err.response?.data?.error || (err.message === 'Network Error' ? 'Cannot connect to server. Please check if the backend API is running on port 3000.' : 'Authentication failed. Please try again.');
+      const msg = err.response?.data?.error || (err.message === 'Network Error' ? 'Cannot connect to server. Please check your network or backend API connection.' : 'Authentication failed. Please try again.');
       setError(msg);
     } finally {
       setLoading(false);

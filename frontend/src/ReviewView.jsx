@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Star, ThumbsUp, Bug, Sparkles, Lightbulb, Plus, X, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from './config.js';
 
 const TYPE_TAGS = [
   { id: 'ALL', label: 'All Reviews' },
@@ -35,7 +36,7 @@ function ReviewView({ user, token, onOpenAuth, showToast }) {
       if (selectedType !== 'ALL') params.append('type', selectedType);
       if (searchQuery) params.append('query', searchQuery);
 
-      const res = await axios.get(`http://localhost:3000/api/reviews?${params.toString()}`);
+      const res = await axios.get(`${API_BASE_URL}/api/reviews?${params.toString()}`);
       setReviews(res.data.reviews || []);
       if (res.data.stats) setStats(res.data.stats);
     } catch (err) {
@@ -47,7 +48,7 @@ function ReviewView({ user, token, onOpenAuth, showToast }) {
 
   const handleUpvote = async (reviewId) => {
     try {
-      const res = await axios.post(`http://localhost:3000/api/reviews/${reviewId}/upvote`);
+      const res = await axios.post(`${API_BASE_URL}/api/reviews/${reviewId}/upvote`);
       if (res.data) {
         setReviews(prev => prev.map(r => r._id === reviewId ? { ...r, upvotes: res.data.upvotes } : r));
         showToast('Upvoted feedback! 👍');
@@ -74,7 +75,7 @@ function ReviewView({ user, token, onOpenAuth, showToast }) {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const res = await axios.post(
-        'http://localhost:3000/api/reviews',
+        `${API_BASE_URL}/api/reviews`,
         {
           type: subType,
           rating: subRating,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, TrendingDown, ExternalLink, Loader2, Zap, LayoutGrid, Star, ShieldCheck, Tag, Filter, ArrowUpDown, ShoppingBag, User as UserIcon, LogOut, UserCheck, Heart, ShoppingCart, Lock, CheckCircle2, Flame, Bell } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from './config.js';
 import AuthModal from './AuthModal';
 import WishlistDrawer from './WishlistDrawer';
 import CartDrawer from './CartDrawer';
@@ -75,9 +76,9 @@ function App() {
 
     try {
       const [wRes, cRes, aRes] = await Promise.all([
-        axios.get('http://localhost:3000/api/user/wishlist', { headers }),
-        axios.get('http://localhost:3000/api/user/cart', { headers }),
-        axios.get('http://localhost:3000/api/user/price-alerts', { headers })
+        axios.get(`${API_BASE_URL}/api/user/wishlist`, { headers }),
+        axios.get(`${API_BASE_URL}/api/user/cart`, { headers }),
+        axios.get(`${API_BASE_URL}/api/user/price-alerts`, { headers })
       ]);
       if (wRes.data) setWishlist(wRes.data);
       if (cRes.data) setCart(cRes.data);
@@ -125,7 +126,7 @@ function App() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
 
-      const res = await axios.post('http://localhost:3000/api/search', { productName: searchTerm }, { headers });
+      const res = await axios.post(`${API_BASE_URL}/api/search`, { productName: searchTerm }, { headers });
       if (res.data) {
         setActiveTasks(res.data.active_tasks || 0);
         setDispatchedStores(res.data.dispatched_stores || []);
@@ -135,7 +136,7 @@ function App() {
       const pollInterval = setInterval(async () => {
         attempts++;
         try {
-          const resultsRes = await axios.get('http://localhost:3000/api/results', { headers });
+          const resultsRes = await axios.get(`${API_BASE_URL}/api/results`, { headers });
           const validProducts = resultsRes.data.filter(item => item.price > 0);
           setProducts(validProducts);
 
@@ -174,7 +175,7 @@ function App() {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const res = await axios.post(
-        'http://localhost:3000/api/user/price-alerts/check',
+        `${API_BASE_URL}/api/user/price-alerts/check`,
         { searchedProducts: searchedItems },
         { headers }
       );
@@ -193,7 +194,7 @@ function App() {
     if (!token) return;
     try {
       const headers = { Authorization: `Bearer ${token}` };
-      const res = await axios.post('http://localhost:3000/api/user/price-alerts/read-all', {}, { headers });
+      const res = await axios.post(`${API_BASE_URL}/api/user/price-alerts/read-all`, {}, { headers });
       if (res.data) setPriceAlerts(res.data);
       showToast('All alerts marked as read.');
     } catch (err) {
@@ -223,14 +224,14 @@ function App() {
 
     try {
       if (isSaved) {
-        const res = await axios.delete('http://localhost:3000/api/user/wishlist', {
+        const res = await axios.delete(`${API_BASE_URL}/api/user/wishlist`, {
           headers,
           data: { url: product.url }
         });
         setWishlist(res.data);
         showToast('Removed deal from Wishlist.');
       } else {
-        const res = await axios.post('http://localhost:3000/api/user/wishlist', product, { headers });
+        const res = await axios.post(`${API_BASE_URL}/api/user/wishlist`, product, { headers });
         setWishlist(res.data);
         showToast('Saved deal to Wishlist! ❤️');
       }
@@ -249,7 +250,7 @@ function App() {
     const headers = { Authorization: `Bearer ${token}` };
 
     try {
-      const res = await axios.post('http://localhost:3000/api/user/cart', product, { headers });
+      const res = await axios.post(`${API_BASE_URL}/api/user/cart`, product, { headers });
       setCart(res.data);
       showToast('Added deal to Cart! 🛒');
     } catch (err) {
@@ -261,7 +262,7 @@ function App() {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const res = await axios.delete('http://localhost:3000/api/user/cart', { headers, data: { url } });
+      const res = await axios.delete(`${API_BASE_URL}/api/user/cart`, { headers, data: { url } });
       setCart(res.data);
       showToast('Item removed from Cart.');
     } catch (err) {
@@ -273,7 +274,7 @@ function App() {
     if (!token) return;
     const headers = { Authorization: `Bearer ${token}` };
     try {
-      const res = await axios.delete('http://localhost:3000/api/user/cart/clear', { headers });
+      const res = await axios.delete(`${API_BASE_URL}/api/user/cart/clear`, { headers });
       setCart(res.data);
       showToast('Cart cleared.');
     } catch (err) {

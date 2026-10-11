@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Search, Star, Utensils, Calendar, Clock, Users, CheckCircle2, Loader2, Sparkles, Filter, X, Navigation, Crosshair, Home } from 'lucide-react';
 import axios from 'axios';
+import { API_BASE_URL } from './config.js';
 
 const POPULAR_LOCATIONS = ['Delhi', 'Mumbai', 'Bangalore', 'Pune', 'Hyderabad', 'Kolkata'];
 const CUISINE_TAGS = ['ALL', 'North Indian', 'Fine Dining', 'Italian', 'Seafood', 'Asian', 'Continental', 'Fast Food'];
@@ -90,7 +91,7 @@ function RestaurantView({ user, token, onOpenAuth, showToast }) {
       if (selectedCuisine !== 'ALL') params.append('cuisine', selectedCuisine);
       if (availableOnly) params.append('availableOnly', 'true');
 
-      const res = await axios.get(`http://localhost:3000/api/restaurants?${params.toString()}`);
+      const res = await axios.get(`${API_BASE_URL}/api/restaurants?${params.toString()}`);
       setRestaurants(res.data || []);
     } catch (err) {
       console.error("Error fetching restaurants:", err);
@@ -116,7 +117,7 @@ function RestaurantView({ user, token, onOpenAuth, showToast }) {
     try {
       const headers = { Authorization: `Bearer ${token}` };
       const res = await axios.post(
-        'http://localhost:3000/api/restaurants/reserve',
+        `${API_BASE_URL}/api/restaurants/reserve`,
         {
           restaurantId: selectedRestaurant._id,
           date: resDate,
