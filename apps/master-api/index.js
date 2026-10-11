@@ -17,6 +17,12 @@ app.use(cors());
 app.use(express.json());
 
 // 2. Routes
+app.get('/', (req, res) => {
+    res.status(200).json({ status: "OK", service: "Distributed Scraper Master API", timestamp: new Date() });
+});
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: "healthy" });
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/user/price-alerts', priceAlertRoutes);
 app.use('/api/user', userRoutes);
