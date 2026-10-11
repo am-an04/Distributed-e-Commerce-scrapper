@@ -387,6 +387,34 @@ function App() {
                     )}
                   </div>
                 </div>
+
+                {/* Top Header User Profile / Login Button */}
+                {user ? (
+                  <div className="bg-slate-950 border border-slate-900 px-3 py-2 rounded-2xl flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-600 to-black border border-red-500/40 flex items-center justify-center font-black text-white text-xs shrink-0">
+                      {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <div className="hidden sm:block text-left">
+                      <div className="text-xs font-bold text-slate-200 truncate max-w-[100px]">{user.name}</div>
+                      <div className="text-[10px] text-emerald-400 font-semibold">Active Session</div>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-900 transition-colors ml-1"
+                      title="Sign Out"
+                    >
+                      <LogOut size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsAuthOpen(true)}
+                    className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white px-4 py-3 rounded-2xl text-xs font-black shadow-lg shadow-red-950/40 transition-all flex items-center gap-2 shrink-0"
+                  >
+                    <UserCheck size={16} />
+                    <span>Sign In / Register</span>
+                  </button>
+                )}
               </div>
             </div>
 
