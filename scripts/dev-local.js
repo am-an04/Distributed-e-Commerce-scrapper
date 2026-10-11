@@ -96,7 +96,8 @@ async function start() {
     const env = { 
         ...process.env, 
         MONGO_URI: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/scraper_db', 
-        REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379' 
+        REDIS_URL: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+        JWT_SECRET: process.env.JWT_SECRET || 'antigravity_secret_key_2026'
     };
 
     console.log("⚡ Launching Master API (Port 3000)...");

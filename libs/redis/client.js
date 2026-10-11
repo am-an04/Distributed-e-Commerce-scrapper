@@ -2,7 +2,10 @@ const { createClient } = require('redis');
 let client;
 
 const connectRedis = async () => {
-    client = createClient({ url: process.env.REDIS_URL || 'redis://127.0.0.1:6379' });
+    if (!process.env.REDIS_URL) {
+        throw new Error("REDIS_URL environment variable is not defined");
+    }
+    client = createClient({ url: process.env.REDIS_URL });
     await client.connect();
     console.log('📡 Redis Connection Established');
     return client;

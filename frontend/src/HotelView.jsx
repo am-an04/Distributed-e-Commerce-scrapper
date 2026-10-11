@@ -51,7 +51,7 @@ function HotelView({ user, token, onOpenAuth, showToast }) {
 
           if (res.data && res.data.address) {
             const addr = res.data.address;
-            const detectedCity = addr.city || addr.town || addr.state_district || addr.suburb || 'Goa';
+            const detectedCity = addr.city || addr.town || addr.state_district || addr.suburb || '';
             const detectedFull = res.data.display_name || `${addr.road || ''}, ${detectedCity}`;
             
             setLocation(detectedCity);

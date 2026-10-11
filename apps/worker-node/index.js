@@ -1,3 +1,4 @@
+require('dotenv').config();
 const connectDB = require('../../libs/database/connection');
 const { connectRedis } = require('../../libs/redis/client');
 const runScraper = require('./engine/scraper');

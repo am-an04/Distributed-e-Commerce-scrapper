@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../../../libs/database/User');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'antigravity_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '7d';
 
 const generateToken = (user) => {
