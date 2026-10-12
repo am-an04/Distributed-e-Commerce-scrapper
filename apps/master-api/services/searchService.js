@@ -16,6 +16,13 @@ const initiateSearch = async (productName) => {
     // Clear previous search results from DB
     await Product.deleteMany({});
 
+    // Clear stale tasks in Redis scrape_queue so workers don't execute old queries
+    try {
+        await redisClient.del('scrape_queue');
+    } catch (e) {
+        console.warn('⚠️ Could not flush scrape_queue:', e.message);
+    }
+
     const tasks = [];
     const queryLower = productName.toLowerCase();
 
@@ -44,7 +51,8 @@ const initiateSearch = async (productName) => {
             tasks.push({
                 name: storeKey,
                 storeDisplayName: cfg.name,
-                url: cfg.searchUrl(productName)
+                url: cfg.searchUrl(productName),
+                query: productName
             });
         }
     }
@@ -64,9 +72,18 @@ const initiateSearch = async (productName) => {
 };
 
 /**
- * Fetch results from DB sorted by price
+ * Fetch results from DB sorted by price, matching query when supplied
  */
-const getLatestResults = async () => {
+const getLatestResults = async (searchQuery) => {
+    if (searchQuery && searchQuery.trim()) {
+        const words = searchQuery.trim().split(/\s+/).filter(Boolean);
+        if (words.length > 0) {
+            const regexPattern = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+            const searchRegex = new RegExp(regexPattern, 'i');
+            const matched = await Product.find({ title: searchRegex }).sort({ price: 1 });
+            if (matched.length > 0) return matched;
+        }
+    }
     return await Product.find().sort({ price: 1 });
 };
 

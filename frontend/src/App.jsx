@@ -108,25 +108,20 @@ function App() {
     showToast('Signed out successfully.');
   };
 
-  // Mandatory Auth Check before Search
+  // Execute Search across Distributed Workers
   const executeSearch = async (searchTerm) => {
     if (!searchTerm || !searchTerm.trim()) return;
 
-    if (!user || !token) {
-      setIsAuthOpen(true);
-      setStatus('🔐 Authentication Required: Please log in or register to search deals.');
-      return;
-    }
-
+    const trimmedTerm = searchTerm.trim();
     setProducts([]);
     setLoading(true);
-    setStatus('Initializing distributed worker nodes across platforms...');
+    setStatus(`Initializing distributed worker nodes for "${trimmedTerm}"...`);
     setSelectedStore('ALL');
 
     try {
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await axios.post(`${API_BASE_URL}/api/search`, { productName: searchTerm }, { headers });
+      const res = await axios.post(`${API_BASE_URL}/api/search`, { productName: trimmedTerm }, { headers });
       if (res.data) {
         setActiveTasks(res.data.active_tasks || 0);
         setDispatchedStores(res.data.dispatched_stores || []);
@@ -136,21 +131,23 @@ function App() {
       const pollInterval = setInterval(async () => {
         attempts++;
         try {
-          const resultsRes = await axios.get(`${API_BASE_URL}/api/results`, { headers });
-          const validProducts = resultsRes.data.filter(item => item.price > 0);
+          const resultsRes = await axios.get(`${API_BASE_URL}/api/results?q=${encodeURIComponent(trimmedTerm)}`, { headers });
+          const validProducts = (resultsRes.data || []).filter(item => item.price > 0);
           setProducts(validProducts);
 
           if (validProducts.length > 0) {
-            setStatus(`Gathered ${validProducts.length} deals from workers...`);
+            setStatus(`Gathered ${validProducts.length} deals for "${trimmedTerm}" from workers...`);
           }
 
-          if (attempts >= 14) {
+          if (attempts >= 14 || (validProducts.length >= 6 && attempts >= 4)) {
             clearInterval(pollInterval);
             setLoading(false);
-            setStatus(validProducts.length > 0 ? `Analysis complete — ${validProducts.length} deals aggregated` : 'No valid deals found for this query.');
+            setStatus(validProducts.length > 0 ? `Analysis complete — ${validProducts.length} deals aggregated` : `No valid deals found for "${trimmedTerm}". Try another keyword.`);
             
-            // Check for Price Drop Alerts on finished search
-            checkPriceAlerts(validProducts);
+            // Check for Price Drop Alerts on finished search if logged in
+            if (token) {
+              checkPriceAlerts(validProducts);
+            }
           }
         } catch (err) {
           console.error("Polling error:", err);
@@ -160,13 +157,7 @@ function App() {
     } catch (err) {
       console.error("Search failed:", err);
       setLoading(false);
-      if (err.response?.status === 401) {
-        setIsAuthOpen(true);
-        setStatus('Session expired. Please log in again.');
-        handleLogout();
-      } else {
-        setStatus('Could not connect to Master API server.');
-      }
+      setStatus('Could not connect to Master API server. Please retry.');
     }
   };
 
@@ -450,7 +441,7 @@ function App() {
                     type="text" 
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder={user ? "Search products across 15+ Indian & Global shopping sites..." : "Log in to start searching deals..."}
+                    placeholder="Search products across 15+ shopping sites (e.g. Laptop, iPhone, Shoes)..."
                     className="w-full bg-slate-950 border border-slate-900 rounded-2xl py-5 pl-14 pr-36 focus:outline-none focus:border-red-600 transition-all text-base md:text-lg text-slate-100 placeholder:text-slate-600"
                   />
                   <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500" size={22} />
