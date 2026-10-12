@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, TrendingDown, ExternalLink, Loader2, Zap, LayoutGrid, Star, ShieldCheck, Tag, Filter, ArrowUpDown, ShoppingBag, User as UserIcon, LogOut, UserCheck, Heart, ShoppingCart, Lock, CheckCircle2, Flame, Bell } from 'lucide-react';
 import axios from 'axios';
 import { API_BASE_URL } from './config.js';
@@ -32,6 +32,9 @@ function App() {
   const [selectedStore, setSelectedStore] = useState('ALL');
   const [sortBy, setSortBy] = useState('PRICE_ASC');
 
+  // Polling ref to track active intervals and prevent overlapping
+  const pollIntervalRef = useRef(null);
+
   // Auth & Drawers States
   const [user, setUser] = useState(null);
   const [token, setToken] = useState('');
@@ -43,6 +46,16 @@ function App() {
   const [cart, setCart] = useState([]);
   const [priceAlerts, setPriceAlerts] = useState([]);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Clear polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, []);
 
   // Toast Helper
   const showToast = (msg) => {
@@ -112,6 +125,12 @@ function App() {
   const executeSearch = async (searchTerm) => {
     if (!searchTerm || !searchTerm.trim()) return;
 
+    // Clear any existing polling interval at the start of each search
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
     const trimmedTerm = searchTerm.trim();
     setProducts([]);
     setLoading(true);
@@ -122,16 +141,24 @@ function App() {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       const res = await axios.post(`${API_BASE_URL}/api/search`, { productName: trimmedTerm }, { headers });
+      const searchId = res.data?.searchId;
+
+      if (!searchId) {
+        setLoading(false);
+        setStatus('Could not initialize search session.');
+        return;
+      }
+
       if (res.data) {
         setActiveTasks(res.data.active_tasks || 0);
         setDispatchedStores(res.data.dispatched_stores || []);
       }
       
       let attempts = 0;
-      const pollInterval = setInterval(async () => {
+      pollIntervalRef.current = setInterval(async () => {
         attempts++;
         try {
-          const resultsRes = await axios.get(`${API_BASE_URL}/api/results?q=${encodeURIComponent(trimmedTerm)}`, { headers });
+          const resultsRes = await axios.get(`${API_BASE_URL}/api/results?searchId=${encodeURIComponent(searchId)}`, { headers });
           const validProducts = (resultsRes.data || []).filter(item => item.price > 0);
           setProducts(validProducts);
 
@@ -139,8 +166,11 @@ function App() {
             setStatus(`Gathered ${validProducts.length} deals for "${trimmedTerm}" from workers...`);
           }
 
-          if (attempts >= 14 || (validProducts.length >= 6 && attempts >= 4)) {
-            clearInterval(pollInterval);
+          if (attempts >= 24) {
+            if (pollIntervalRef.current) {
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
             setLoading(false);
             setStatus(validProducts.length > 0 ? `Analysis complete — ${validProducts.length} deals aggregated` : `No valid deals found for "${trimmedTerm}". Try another keyword.`);
             
@@ -156,6 +186,10 @@ function App() {
 
     } catch (err) {
       console.error("Search failed:", err);
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
       setLoading(false);
       setStatus('Could not connect to Master API server. Please retry.');
     }

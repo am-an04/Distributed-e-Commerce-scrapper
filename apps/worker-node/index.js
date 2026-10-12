@@ -63,10 +63,19 @@ async function start() {
 
             console.log(" Raw Task:", taskData.element);
 
-            const { url, name } = JSON.parse(taskData.element);
+            const { url, name, searchId } = JSON.parse(taskData.element);
             const store = name.toLowerCase();
 
-            console.log(` [${store}] Scraping...`);
+            // Skip stale tasks if a newer search has superseded this one
+            if (searchId) {
+                const currentSearchId = await redis.get('current_search_id');
+                if (currentSearchId && currentSearchId !== searchId) {
+                    console.log(`⏭️ [${store}] Skipping stale task (${searchId} != current ${currentSearchId})`);
+                    continue;
+                }
+            }
+
+            console.log(` [${store}] Scraping... (searchId: ${searchId || 'none'})`);
 
             const config = storeConfigs[store];
 
@@ -77,6 +86,15 @@ async function start() {
             }
 
             const data = await runScraper(url, store, config);
+
+            // Check again after scraping before writing to DB
+            if (searchId) {
+                const currentSearchIdAfter = await redis.get('current_search_id');
+                if (currentSearchIdAfter && currentSearchIdAfter !== searchId) {
+                    console.log(`⏭️ [${store}] Skipping save for stale search (${searchId} != current ${currentSearchIdAfter})`);
+                    continue;
+                }
+            }
 
             console.log(" Scraped Data count:", data ? data.length : 0);
 
@@ -91,8 +109,9 @@ async function start() {
 
                         if (numericPrice > 0) {
                             await Product.findOneAndUpdate(
-                                { url: item.url },
+                                { url: item.url, searchId },
                                 {
+                                    searchId,
                                     title: item.title,
                                     price: numericPrice,
                                     originalPrice: numericOrigPrice > numericPrice ? numericOrigPrice : null,

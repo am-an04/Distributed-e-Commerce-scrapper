@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const { getRedisClient } = require('../../../libs/redis/client');
 const Product = require('../../../libs/database/Product');
 const storeConfigs = require('../../worker-node/scrapers/siteConfigs');
@@ -12,16 +13,10 @@ const BEAUTY_KEYWORDS = ['lipstick', 'perfume', 'shampoo', 'cream', 'lotion', 'm
  */
 const initiateSearch = async (productName) => {
     const redisClient = await getRedisClient();
+    const searchId = crypto.randomUUID();
 
-    // Clear previous search results from DB
-    await Product.deleteMany({});
-
-    // Clear stale tasks in Redis scrape_queue so workers don't execute old queries
-    try {
-        await redisClient.del('scrape_queue');
-    } catch (e) {
-        console.warn('⚠️ Could not flush scrape_queue:', e.message);
-    }
+    // Set active searchId in Redis
+    await redisClient.set('current_search_id', searchId);
 
     const tasks = [];
     const queryLower = productName.toLowerCase();
@@ -49,6 +44,7 @@ const initiateSearch = async (productName) => {
 
         if (shouldInclude && typeof cfg.searchUrl === 'function') {
             tasks.push({
+                searchId,
                 name: storeKey,
                 storeDisplayName: cfg.name,
                 url: cfg.searchUrl(productName),
@@ -57,7 +53,7 @@ const initiateSearch = async (productName) => {
         }
     }
 
-    console.log(`📤 Pushing ${tasks.length} scraping tasks to Redis for '${productName}'...`);
+    console.log(`📤 Pushing ${tasks.length} scraping tasks to Redis for '${productName}' (searchId: ${searchId})...`);
 
     // Push tasks to Redis scrape_queue
     for (const task of tasks) {
@@ -66,25 +62,20 @@ const initiateSearch = async (productName) => {
     }
 
     return {
+        searchId,
         count: tasks.length,
         stores: tasks.map(t => t.storeDisplayName || t.name)
     };
 };
 
 /**
- * Fetch results from DB sorted by price, matching query when supplied
+ * Fetch results from DB sorted by price, strictly for the provided searchId with no fallback
  */
-const getLatestResults = async (searchQuery) => {
-    if (searchQuery && searchQuery.trim()) {
-        const words = searchQuery.trim().split(/\s+/).filter(Boolean);
-        if (words.length > 0) {
-            const regexPattern = words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
-            const searchRegex = new RegExp(regexPattern, 'i');
-            const matched = await Product.find({ title: searchRegex }).sort({ price: 1 });
-            if (matched.length > 0) return matched;
-        }
+const getLatestResults = async (searchId) => {
+    if (!searchId) {
+        return [];
     }
-    return await Product.find().sort({ price: 1 });
+    return await Product.find({ searchId }).sort({ price: 1 });
 };
 
 module.exports = { initiateSearch, getLatestResults };

@@ -30,6 +30,7 @@ router.post('/search', optionalAuth, async (req, res) => {
         
         res.status(202).json({
             message: `Search initiated for ${productName}`,
+            searchId: searchInfo.searchId,
             active_tasks: typeof searchInfo === 'number' ? searchInfo : searchInfo.count,
             dispatched_stores: searchInfo.stores || []
         });
@@ -39,11 +40,11 @@ router.post('/search', optionalAuth, async (req, res) => {
     }
 });
 
-// GET: Retrieve results for the Frontend (supports ?q= query filter)
+// GET: Retrieve results for the Frontend (requires searchId)
 router.get('/results', async (req, res) => {
     try {
-        const { q } = req.query;
-        const results = await getLatestResults(q);
+        const { searchId } = req.query;
+        const results = await getLatestResults(searchId);
         res.status(200).json(results);
     } catch (error) {
         res.status(500).json({ error: "Could not retrieve results" });
