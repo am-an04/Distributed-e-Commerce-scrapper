@@ -1,13 +1,13 @@
 const jwt = require('jsonwebtoken');
 const User = require('../../../libs/database/User');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const getJwtSecret = () => process.env.JWT_SECRET || 'antigravity_distributed_scraper_jwt_secret_2026';
 const JWT_EXPIRES_IN = '7d';
 
 const generateToken = (user) => {
     return jwt.sign(
         { id: user._id, name: user.name, email: user.email },
-        JWT_SECRET,
+        getJwtSecret(),
         { expiresIn: JWT_EXPIRES_IN }
     );
 };

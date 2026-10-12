@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const getJwtSecret = () => process.env.JWT_SECRET || 'antigravity_distributed_scraper_jwt_secret_2026';
 
 const authMiddleware = (req, res, next) => {
     try {
@@ -10,7 +10,7 @@ const authMiddleware = (req, res, next) => {
         }
 
         const token = authHeader.split(' ')[1];
-        const decoded = jwt.verify(token, JWT_SECRET);
+        const decoded = jwt.verify(token, getJwtSecret());
 
         req.user = decoded;
         next();
