@@ -11,9 +11,9 @@ const BEAUTY_KEYWORDS = ['lipstick', 'perfume', 'shampoo', 'cream', 'lotion', 'm
 /**
  * Distributes tasks to workers dynamically based on product query and category hints
  */
-const initiateSearch = async (productName) => {
+const initiateSearch = async (productName, requestedSearchId) => {
     const redisClient = await getRedisClient();
-    const searchId = crypto.randomUUID();
+    const searchId = requestedSearchId || crypto.randomUUID();
 
     // Set active searchId in Redis
     await redisClient.set('current_search_id', searchId);

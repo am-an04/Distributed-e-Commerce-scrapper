@@ -137,17 +137,19 @@ function App() {
     setStatus(`Initializing distributed worker nodes for "${trimmedTerm}"...`);
     setSelectedStore('ALL');
 
+    const clientSearchId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+      ? crypto.randomUUID() 
+      : 'search_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+
     try {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      const res = await axios.post(`${API_BASE_URL}/api/search`, { productName: trimmedTerm }, { headers });
-      const searchId = res.data?.searchId;
-
-      if (!searchId) {
-        setLoading(false);
-        setStatus('Could not initialize search session.');
-        return;
-      }
+      const res = await axios.post(`${API_BASE_URL}/api/search`, { 
+        productName: trimmedTerm,
+        searchId: clientSearchId 
+      }, { headers });
+      
+      const searchId = res.data?.searchId || clientSearchId;
 
       if (res.data) {
         setActiveTasks(res.data.active_tasks || 0);

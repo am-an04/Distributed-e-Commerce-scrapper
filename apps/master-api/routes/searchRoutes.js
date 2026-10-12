@@ -20,13 +20,13 @@ const optionalAuth = (req, res, next) => {
 // POST: Trigger distributed scraping for the requested product
 router.post('/search', optionalAuth, async (req, res) => {
     try {
-        const { productName } = req.body;
+        const { productName, searchId: clientSearchId } = req.body;
         if (!productName || !productName.trim()) {
             return res.status(400).json({ error: "Product name is required" });
         }
 
         // Call the service to push tasks to Redis
-        const searchInfo = await initiateSearch(productName.trim());
+        const searchInfo = await initiateSearch(productName.trim(), clientSearchId);
         
         res.status(202).json({
             message: `Search initiated for ${productName}`,
