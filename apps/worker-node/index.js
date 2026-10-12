@@ -13,6 +13,42 @@ process.on('uncaughtException', (err) => {
     console.error('⚠️ Worker Uncaught Exception:', err.message);
 });
 
+const http = require('http');
+
+// Render Web Service health endpoint (starts when PORT is assigned by host)
+const PORT = process.env.PORT;
+if (PORT) {
+    const healthServer = http.createServer((req, res) => {
+        if (req.url === '/health' || req.url === '/') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ 
+                status: 'healthy', 
+                service: 'worker-node', 
+                uptime: process.uptime(),
+                timestamp: new Date().toISOString()
+            }));
+        } else {
+            res.writeHead(404);
+            res.end();
+        }
+    });
+
+    healthServer.listen(PORT, () => {
+        console.log(`🌐 Worker Health Server active on port ${PORT}`);
+    });
+}
+
+const shutdown = async () => {
+    console.log("🛑 Worker shutting down...");
+    if (runScraper.closeBrowser) {
+        await runScraper.closeBrowser();
+    }
+    process.exit(0);
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
 async function start() {
     await connectDB();
     const redis = await connectRedis();

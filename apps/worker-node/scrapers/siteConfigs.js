@@ -123,9 +123,9 @@ module.exports = {
         name: 'Nike',
         category: 'sports',
         searchUrl: (q) => `https://www.nike.com/in/w?q=${encodeURIComponent(q)}`,
-        container: ['div[data-testid="product-card"]', 'div.product-card'],
-        title: ['.product-card__title', 'div.product-card__subtitle'],
-        price: ['.product-price__wrapper', 'div.product-price', '.price-override'],
+        container: ['div[data-testid="product-card"]', 'a[href*="/p/"]', 'div.product__description', 'div.product-card'],
+        title: ['.product-card__title', 'div.product-card__subtitle', 'a.css-1o8jw7q', 'a[title]'],
+        price: ['.product-price__wrapper', 'div.product-price', '.price-override', 'div[class*="price"]'],
         originalPrice: ['.product-price--strikethrough'],
         rating: ['.review-count'],
         image: ['img.product-card__hero-image', 'img']
@@ -147,21 +147,21 @@ module.exports = {
         name: 'Decathlon',
         category: 'sports',
         searchUrl: (q) => `https://www.decathlon.in/search?query=${encodeURIComponent(q)}`,
-        container: ['div.product-card-container', 'div.de-Card', 'div.product-tuple'],
-        title: ['p.product-title', 'h2.product-title', 'a.product-card-title'],
-        price: ['span.price', 'div.price-value', 'span.de-CardPrice'],
+        container: ['a[href*="/p/"]', 'div.product-card-container', 'div.de-Card', 'div.product-tuple'],
+        title: ['h2', 'p.product-title', 'h2.product-title', 'a.product-card-title'],
+        price: ['span[class*="price"]', 'span.price', 'div.price-value', 'span.de-CardPrice'],
         originalPrice: ['span.strike-price', 'span.mrp-price'],
         rating: ['div.rating-value', 'span.rating'],
-        image: ['img.product-card-image', 'img.de-CardImage']
+        image: ['img.product-card-image', 'img.de-CardImage', 'img']
     },
 
     shopsy: {
         name: 'Shopsy',
         category: 'general',
         searchUrl: (q) => `https://www.shopsy.in/search?q=${encodeURIComponent(q)}`,
-        container: ['div[data-id]', 'div._1AtVbE'],
-        title: ['a.w_Nig7', 'a.IRpw9B', 'div._4rR01T'],
-        price: ['div.Nx9bqj', 'div._30jeq3'],
+        container: ['a[href*="/p/"]', 'div[data-id]', 'div._1AtVbE'],
+        title: ['a.w_Nig7', 'a.IRpw9B', 'div._4rR01T', 'a[title]', 'h2', 'span'],
+        price: ['div.Nx9bqj', 'div._30jeq3', 'div[class*="price"]'],
         originalPrice: ['div.yRaYxfa', 'div._3I9_wc'],
         rating: ['div._3LWZlK'],
         image: ['img._396cs4', 'img']
@@ -171,11 +171,11 @@ module.exports = {
         name: 'Vijay Sales',
         category: 'electronics',
         searchUrl: (q) => `https://www.vijaysales.com/search/${encodeURIComponent(q)}`,
-        container: ['div.vj-product-card', 'div.dynamicProductCard', 'div.pdt-card'],
-        title: ['div.vj-pdt-name', 'a.vj-pdt-name', 'h2.vj-pdt-name'],
-        price: ['span.vj-pdt-price', 'div.vj-pdt-price', 'span.price'],
-        originalPrice: ['span.vj-pdt-mrp', 'span.mrp'],
+        container: ['.product__card', '[class*="product__card"]', 'div.vj-product-card', 'div.dynamicProductCard', 'div.pdt-card'],
+        title: ['.product__card-title', 'div.vj-pdt-name', 'a.vj-pdt-name', 'h2.vj-pdt-name', 'h3.product-title'],
+        price: ['.product__card-price', 'span.vj-pdt-price', 'div.vj-pdt-price', 'span.price', '.price'],
+        originalPrice: ['.product__card-mrp', 'span.vj-pdt-mrp', 'span.mrp'],
         rating: ['div.vj-rating-box'],
-        image: ['img.vj-pdt-img', 'img']
+        image: ['.product__card__image img', 'img.vj-pdt-img', 'img']
     }
 };
